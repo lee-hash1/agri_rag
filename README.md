@@ -1,8 +1,12 @@
 TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support
-https://img.shields.io/badge/Paper-arXiv-brightgreen
-https://img.shields.io/badge/License-MIT-blue
-https://img.shields.io/badge/Python-3.9%252B-blue
-https://img.shields.io/badge/PyTorch-2.5.1%252B-red
+
+[//]: # (https://img.shields.io/badge/Paper-arXiv-brightgreen)
+
+[//]: # (https://img.shields.io/badge/License-MIT-blue)
+
+[//]: # (https://img.shields.io/badge/Python-3.9%252B-blue)
+
+[//]: # (https://img.shields.io/badge/PyTorch-2.5.1%252B-red)
 
 📌 Project Overview
 TARAG (Time-aware Retrieval-augmented Generation) is a framework designed to provide time-sensitive decision support for agricultural practices. By integrating time-aware knowledge base construction, hybrid time retrieval, and time-based generation, TARAG delivers precise, stage-accurate recommendations for pest and disease management aligned with crop phenology and seasonal constraints.
