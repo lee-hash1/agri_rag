@@ -1,101 +1,111 @@
-# TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support
+TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support
+https://img.shields.io/badge/Paper-arXiv-brightgreen
+https://img.shields.io/badge/License-MIT-blue
+https://img.shields.io/badge/Python-3.9%252B-blue
+https://img.shields.io/badge/PyTorch-2.5.1%252B-red
 
-[//]: # ([![Paper]&#40;https://img.shields.io/badge/Paper-arXiv-brightgreen&#41;]&#40;https://arxiv.org/abs/你的论文链接&#41;)
+📌 Project Overview
+TARAG (Time-aware Retrieval-augmented Generation) is a framework designed to provide time-sensitive decision support for agricultural practices. By integrating time-aware knowledge base construction, hybrid time retrieval, and time-based generation, TARAG delivers precise, stage-accurate recommendations for pest and disease management aligned with crop phenology and seasonal constraints.
 
-[//]: # ([![License]&#40;https://img.shields.io/badge/License-MIT-blue&#41;]&#40;LICENSE&#41;)
+✨ Key Features
+✅ Time-Aware Knowledge Base Construction: Extract and annotate time metadata from unstructured agricultural documents
 
-[//]: # ([![Python]&#40;https://img.shields.io/badge/Python-3.9%2B-blue&#41;]&#40;https://www.python.org/&#41;)
+✅ Hybrid Time Retrieval: Combine sparse retrieval (BM25) with dense semantic retrieval and time-sensitive re-ranking
 
-## 📌 项目简介
+✅ Time-Aware Generation: Generate responses conditioned on both semantic relevance and temporal alignment
 
-TARAG（Time-aware Retrieval-augmented Generation）是一个面向精准农业决策支持的时间感知检索增强生成框架。该框架结合时间感知的知识库构建、混合时间检索与时间感知生成三大模块，旨在为病虫害防治等农业场景提供符合作物物候期、季节变化的时间敏感建议。
+✅ TAQA Dataset: First bilingual (Chinese-English) time-annotated agricultural QA dataset covering 2,000+ pests and diseases
 
-## ✨ 主要特点
+✅ State-of-the-Art Performance: 99.14% retrieval recall and 66.85% F1 score for generated suggestions
 
-- ✅ **时间感知知识库构建**：从非结构化文本中提取并标注时间元数据，构建结构化的农业知识库
-- ✅ **混合时间检索**：结合稀疏检索（BM25）与密集语义检索，并引入时间重排序机制
-- ✅ **时间感知生成**：在生成阶段引入时间约束提示，确保推荐内容的时间一致性
-- ✅ **TAQA数据集**：首个大规模中英双语时间标注农业问答数据集，覆盖2000+病虫害类型
-- ✅ **高性能检索与生成**：在多项评测中显著优于现有RAG框架，检索召回率达99.14%，生成F1达66.85%
-
-## 📂 项目结构
-TARAG/
-├── data/ # 数据集与知识库文件
-│ ├── TAQA/ # TAQA数据集（双语时间标注QA对）
-│ └── knowledge_base/ # 结构化时间索引知识库
-├── modules/ # 核心模块
-│ ├── time_aware_kb/ # 时间感知知识库构建
-│ ├── hybrid_retrieval/ # 混合时间检索模块
-│ └── time_aware_gen/ # 时间感知生成模块
-├── experiments/ # 实验脚本与评估结果
-├── models/ # 预训练模型与嵌入文件
-├── utils/ # 工具函数
-├── configs/ # 配置文件
-├── requirements.txt # 依赖包列表
-├── train.py # 训练脚本
-├── inference.py # 推理脚本
-└── README.md # 项目说明
-
+📂 Project Structure
 text
+TARAG/
+├── data/                    # Datasets and knowledge base
+│   ├── TAQA/               # TAQA dataset (bilingual time-annotated QA pairs)
+│   └── knowledge_base/     # Structured time-indexed knowledge base
+├── modules/                # Core framework modules
+│   ├── time_aware_kb/      # Time-aware knowledge base construction
+│   ├── hybrid_retrieval/   # Hybrid time retrieval module
+│   └── time_aware_gen/     # Time-aware answer generation
+├── experiments/            # Experimental scripts and results
+├── models/                 # Pretrained models and embeddings
+├── utils/                  # Utility functions
+├── configs/                # Configuration files
+├── requirements.txt        # Python dependencies
+├── train.py                # Training scripts
+├── inference.py            # Inference scripts
+├── evaluate.py             # Evaluation scripts
+└── README.md               # This file
+📊 TAQA Dataset
+TAQA is a bilingual (Chinese-English) time-annotated agricultural question-answering dataset with approximately 30,000 high-quality QA pairs covering over 2,000 types of pests and diseases.
 
-## 📊 TAQA 数据集
+Time Annotation Categories:
+Phenological Stage (e.g., "seedling stage", "flowering period")
 
-TAQA 是一个中英双语、时间标注的农业问答数据集，包含约3万条高质量QA对，覆盖超过2000种病虫害，并标注了四类时间表达：
+Seasonal Period (e.g., "early spring", "late autumn")
 
-- **物候期**（如“苗期”、“开花期”）
-- **季节性时段**（如“早春”、“晚秋”）
-- **日历时间**（如“八月”、“九月下旬”）
-- **相对时间表达**（如“收获前”、“开花后”）
+Calendar-Based Time (e.g., "August", "late July")
 
-数据集下载与使用说明详见 [`data/TAQA/README.md`](data/TAQA/README.md)。
+Relative Time Expression (e.g., "before harvest", "after flowering")
 
-## 🚀 快速开始
+Dataset Statistics:
+Total QA pairs: ~30,000
 
-### 1. 环境安装
+Languages: Chinese and English
 
-```bash
+Time categories: 4 distinct types
+
+Coverage: 2,000+ pests and diseases
+
+Download and usage instructions: data/TAQA/README.md
+
+🚀 Quick Start
+1. Installation
+bash
 git clone https://github.com/your-username/TARAG.git
 cd TARAG
 pip install -r requirements.txt
-2. 数据准备
-下载并解压TAQA数据集与预训练知识库至 data/ 目录。
+2. Data Preparation
+Download and extract the TAQA dataset and knowledge base to the data/ directory.
 
-3. 运行推理示例
+3. Basic Usage
 python
 from modules.hybrid_retrieval import HybridTimeRetriever
 from modules.time_aware_gen import TimeAwareGenerator
 
-# 初始化检索器与生成器
+# Initialize retriever and generator
 retriever = HybridTimeRetriever(knowledge_base_path="data/knowledge_base/")
 generator = TimeAwareGenerator(model_name="DeepSeek-R1-14B")
 
-# 输入查询
-query = "水稻苗期如何防治稻飞虱？"
-time_context = "苗期"
+# Input query with time context
+query = "How to control rice planthopper during seedling stage?"
+time_context = "seedling stage"
 
-# 检索与生成
+# Retrieve and generate
 documents = retriever.retrieve(query, time_context)
 answer = generator.generate(query, documents, time_context)
 print(answer)
-4. 训练自定义知识库
+4. Build Custom Knowledge Base
 bash
 python train.py --config configs/kb_build.yaml
-📈 实验结果
-检索性能对比（Recall@20）
-模型	Recall@20
+📈 Experimental Results
+Retrieval Performance (Recall@20)
+Model	Recall@20
 Contriever	22.62%
 E5	97.51%
 Qwen3-Embedding-4B	96.21%
 TARAG (Ours)	99.14%
-生成性能对比（F1@10）
-模型 + 方法	F1@10
-DeepSeek-R1-14B + Naive RAG	51.22%
-DeepSeek-R1-14B + TimeR4	62.28%
-DeepSeek-R1-14B + TARAG	66.85%
-更多详细结果请见论文与 experiments/ 目录。
+Generation Performance (F1@10 with DeepSeek-R1-14B)
+Method	F1@10
+Direct Prompt	9.33%
+Naive RAG	51.22%
+TimeR4	62.28%
+TARAG	66.85%
+Detailed results are available in the paper and experiments/ directory.
 
-🧪 引用
-如果本项目或论文对您的研究有帮助，请引用：
+🧪 Citation
+If you use TARAG or the TAQA dataset in your research, please cite:
 
 bibtex
 @article{liu2025tarag,
@@ -104,8 +114,8 @@ bibtex
   journal={arXiv preprint arXiv:xxxx.xxxxx},
   year={2025}
 }
-📄 许可证
-本项目采用 MIT 许可证。详见 LICENSE 文件。
+📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-🙌 致谢
-感谢所有为本项目提供数据、模型与实验支持的机构与个人。特别感谢TAQA数据集的标注团队。
+🙌 Acknowledgements
+We thank all contributors who provided data, models, and experimental support for this project. Special thanks to the TAQA dataset annotation team.
