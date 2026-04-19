@@ -1,125 +1,226 @@
-TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support
+# TARAG Local Runnable Version (GPU)
 
-[//]: # (https://img.shields.io/badge/Paper-arXiv-brightgreen)
+This repository implements the full pipeline and has been validated on GPU:
 
-[//]: # (https://img.shields.io/badge/License-MIT-blue)
+1. Knowledge base cleaning (local LLM)
+2. Query parsing (disease/pest + time extraction)
+3. Two-stage retrieval (BM25 over `disease` + embedding rerank over `stage`)
+4. Answer generation (based on retrieved docs)
+5. Answer verification (generated answer vs retrieved evidence)
+6. Batch inference for query files (`ask-batch`)
 
-[//]: # (https://img.shields.io/badge/Python-3.9%252B-blue)
+## Project Layout
 
-[//]: # (https://img.shields.io/badge/PyTorch-2.5.1%252B-red)
+```text
+agri/
+├─ main.py
+├─ tarag/
+│  ├─ cleaner.py
+│  ├─ io_utils.py
+│  ├─ local_llm.py
+│  ├─ pipeline.py
+│  ├─ retriever.py
+│  └─ schemas.py
+├─ data/
+│  ├─ query5.json
+│  ├─ sample_raw_docs.json
+│  └─ sample_clean_docs.json
+├─ models/
+│  └─ DeepSeek-R1-Distill-Qwen-1.5B
+├─ embedding_models/
+│  └─ bge-m3
+└─ output/
+```
 
-📌 Project Overview
-TARAG (Time-aware Retrieval-augmented Generation) is a framework designed to provide time-sensitive decision support for agricultural practices. By integrating time-aware knowledge base construction, hybrid time retrieval, and time-based generation, TARAG delivers precise, stage-accurate recommendations for pest and disease management aligned with crop phenology and seasonal constraints.
+## Environment Setup (Windows)
 
-✨ Key Features
-✅ Time-Aware Knowledge Base Construction: Extract and annotate time metadata from unstructured agricultural documents
+### 1) Use `tarag_env`
 
-✅ Hybrid Time Retrieval: Combine sparse retrieval (BM25) with dense semantic retrieval and time-sensitive re-ranking
+```powershell
+conda activate tarag_env
+```
 
-✅ Time-Aware Generation: Generate responses conditioned on both semantic relevance and temporal alignment
+### 2) Install dependencies
 
-✅ TAQA Dataset: First bilingual (Chinese-English) time-annotated agricultural QA dataset covering 2,000+ pests and diseases
+For this repo state, use:
 
-✅ State-of-the-Art Performance: 99.14% retrieval recall and 66.85% F1 score for generated suggestions
+```powershell
+pip install -r requirements.windows.txt
+```
 
-📂 Project Structure
-text
-TARAG/
-├── data/                    # Datasets and knowledge base
-│   ├── TAQA/               # TAQA dataset (bilingual time-annotated QA pairs)
-│   └── knowledge_base/     # Structured time-indexed knowledge base
-├── modules/                # Core framework modules
-│   ├── time_aware_kb/      # Time-aware knowledge base construction
-│   ├── hybrid_retrieval/   # Hybrid time retrieval module
-│   └── time_aware_gen/     # Time-aware answer generation
-├── experiments/            # Experimental scripts and results
-├── models/                 # Pretrained models and embeddings
-├── utils/                  # Utility functions
-├── configs/                # Configuration files
-├── requirements.txt        # Python dependencies
-├── train.py                # Training scripts
-├── inference.py            # Inference scripts
-├── evaluate.py             # Evaluation scripts
-└── README.md               # This file
-📊 TAQA Dataset
-TAQA is a bilingual (Chinese-English) time-annotated agricultural question-answering dataset with approximately 30,000 high-quality QA pairs covering over 2,000 types of pests and diseases.
+Notes:
+- `requirements.txt` contains machine-specific `@ file:///...` entries.
+- `requirements.windows.txt` is the installable Windows-friendly version.
 
-Time Annotation Categories:
-Phenological Stage (e.g., "seedling stage", "flowering period")
+### 3) Install GPU PyTorch (required)
 
-Seasonal Period (e.g., "early spring", "late autumn")
+Make sure you install CUDA wheels (not `+cpu`):
 
-Calendar-Based Time (e.g., "August", "late July")
+```powershell
+pip install --upgrade torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+```
 
-Relative Time Expression (e.g., "before harvest", "after flowering")
+Check GPU runtime:
 
-Dataset Statistics:
-Total QA pairs: ~30,000
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda)"
+```
 
-Languages: Chinese and English
+Expected output pattern:
+- `2.6.0+cu124`
+- `True`
+- `12.4`
 
-Time categories: 4 distinct types
+## Model Paths
 
-Coverage: 2,000+ pests and diseases
+Recommended explicit paths:
 
-Download and usage instructions: data/TAQA/README.md
+- LLM: `models/DeepSeek-R1-Distill-Qwen-1.5B`
+- Embedding model: `embedding_models/bge-m3`
 
-🚀 Quick Start
-1. Installation
-bash
-git clone https://github.com/your-username/TARAG.git
-cd TARAG
-pip install -r requirements.txt
-2. Data Preparation
-Download and extract the TAQA dataset and knowledge base to the data/ directory.
+## Data Formats
 
-3. Basic Usage
-python
-from modules.hybrid_retrieval import HybridTimeRetriever
-from modules.time_aware_gen import TimeAwareGenerator
+### Cleaned KB format
 
-# Initialize retriever and generator
-retriever = HybridTimeRetriever(knowledge_base_path="data/knowledge_base/")
-generator = TimeAwareGenerator(model_name="DeepSeek-R1-14B")
+```json
+[
+  {
+    "disease": "Tobacco sooty mold",
+    "stage": "July to August",
+    "treatment": "Spray for aphid control"
+  }
+]
+```
 
-# Input query with time context
-query = "How to control rice planthopper during seedling stage?"
-time_context = "seedling stage"
+### Query file format (batch input)
 
-# Retrieve and generate
-documents = retriever.retrieve(query, time_context)
-answer = generator.generate(query, documents, time_context)
-print(answer)
-4. Build Custom Knowledge Base
-bash
-python train.py --config configs/kb_build.yaml
-📈 Experimental Results
-Retrieval Performance (Recall@20)
-Model	Recall@20
-Contriever	22.62%
-E5	97.51%
-Qwen3-Embedding-4B	96.21%
-TARAG (Ours)	99.14%
-Generation Performance (F1@10 with DeepSeek-R1-14B)
-Method	F1@10
-Direct Prompt	9.33%
-Naive RAG	51.22%
-TimeR4	62.28%
-TARAG	66.85%
-Detailed results are available in the paper and experiments/ directory.
+```json
+[
+  {
+    "golden_answer": "2359_2",
+    "query": "In August, weather is hot. Is this when thrips outbreaks are more likely, and how should we control them?",
+    "answer": "..."
+  }
+]
+```
 
-🧪 Citation
-If you use TARAG or the TAQA dataset in your research, please cite:
+`query` is required and must be a non-empty string.
 
-bibtex
-@article{liu2025tarag,
-  title={TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support},
-  author={Liu, Lei and Li, Shunbao and Qi, Jun and Yuan, Zhipeng and Yang, Po},
-  journal={arXiv preprint arXiv:xxxx.xxxxx},
-  year={2025}
+## Commands
+
+### 1) Build/Clean KB
+
+```powershell
+python main.py build-kb `
+  --input data/sample_raw_docs.json `
+  --output data/clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B
+```
+
+### 2) Single query inference
+
+```powershell
+python main.py ask `
+  --question "How to control tobacco black shank 15 days after transplanting?" `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --bm25-top-k 100 `
+  --rerank-top-k 10 `
+  --generation-top-k 5
+```
+
+### 3) Batch inference (`ask-batch`)
+
+Core args:
+- `--query-file` (required)
+- `--kb` (required)
+- `--output` (required, one JSON array file)
+- `--start-index` default `0`
+- `--limit` optional (process to end if omitted)
+- `--progress-every` default `10`
+
+## Recommended Run Flow
+
+### Step A: Run 1 record first
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query5.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --start-index 0 `
+  --limit 1 `
+  --output output/batch_query5_1.json `
+  --progress-every 1
+```
+
+### Step B: Run 10 records
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query5.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --start-index 0 `
+  --limit 10 `
+  --output output/batch_query5_10.json `
+  --progress-every 2
+```
+
+### Step C: Full run
+
+Switch to your full query file (for example `data/query.json`) and remove `--limit`:
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --output output/batch_query_full.json
+```
+
+## `ask-batch` Output Schema
+
+Each item in the output array:
+
+```json
+{
+  "index": 0,
+  "query": "...",
+  "golden_answer": "...",
+  "reference_answer": "...",
+  "result": {
+    "question": "...",
+    "parsed_query": {},
+    "retrieved": [],
+    "answer": "...",
+    "verification": {}
+  },
+  "status": "ok",
+  "error": "",
+  "elapsed_seconds": 51.863
 }
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+```
 
-🙌 Acknowledgements
-We thank all contributors who provided data, models, and experimental support for this project. Special thanks to the TAQA dataset annotation team.
+If `status=error`, processing still continues for remaining items.
+
+## Troubleshooting
+
+### `torch.load` security restriction error
+
+Cause: old PyTorch version.  
+Fix: upgrade to `torch>=2.6` with CUDA wheels.
+
+### GPU is available but pipeline still uses CPU
+
+Check:
+- `torch.__version__` includes CUDA suffix (for example `+cu124`)
+- `torch.cuda.is_available()` is `True`
+
+### `data/query.json` not found
+
+Start with `data/query5.json`, then switch path to your full dataset.

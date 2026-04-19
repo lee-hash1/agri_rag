@@ -1,109 +1,229 @@
-# TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support
+# TARAG 本地可运行版（GPU）
 
-[//]: # ([![Paper]&#40;https://img.shields.io/badge/Paper-arXiv-brightgreen&#41;]&#40;https://arxiv.org/abs/你的论文链接&#41;)
+这个仓库实现了你要的完整链路，并已验证可在 GPU 上运行：
 
-[//]: # ([![License]&#40;https://img.shields.io/badge/License-MIT-blue&#41;]&#40;LICENSE&#41;)
+1. 知识库清洗（本地大模型）
+2. 问题解析（提取病虫害 + 时间）
+3. 两阶段检索（BM25 disease Top-K + stage embedding 重排）
+4. 生成答案（基于检索文档）
+5. 答案校验（生成答案 vs 检索证据）
+6. 批量推理（`query` 文件单条/小批/全量）
 
-[//]: # ([![Python]&#40;https://img.shields.io/badge/Python-3.9%2B-blue&#41;]&#40;https://www.python.org/&#41;)
+## 目录结构
 
-## 📌 项目简介
+```text
+agri/
+├─ main.py
+├─ tarag/
+│  ├─ cleaner.py
+│  ├─ io_utils.py
+│  ├─ local_llm.py
+│  ├─ pipeline.py
+│  ├─ retriever.py
+│  └─ schemas.py
+├─ data/
+│  ├─ query5.json
+│  ├─ sample_raw_docs.json
+│  └─ sample_clean_docs.json
+├─ models/
+│  └─ DeepSeek-R1-Distill-Qwen-1.5B
+├─ embedding_models/
+│  └─ bge-m3
+└─ output/
+```
 
-TARAG（Time-aware Retrieval-augmented Generation）是一个面向精准农业决策支持的时间感知检索增强生成框架。该框架结合时间感知的知识库构建、混合时间检索与时间感知生成三大模块，旨在为病虫害防治等农业场景提供符合作物物候期、季节变化的时间敏感建议。
+## 环境准备（Windows）
 
-## ✨ 主要特点
+### 1) 使用 `tarag_env`
 
-- ✅ **时间感知知识库构建**：从非结构化文本中提取并标注时间元数据，构建结构化的农业知识库
-- ✅ **混合时间检索**：结合稀疏检索（BM25）与密集语义检索，并引入时间重排序机制
-- ✅ **时间感知生成**：在生成阶段引入时间约束提示，确保推荐内容的时间一致性
-- ✅ **TAQA数据集**：首个大规模中英双语时间标注农业问答数据集，覆盖2000+病虫害类型
-- ✅ **高性能检索与生成**：在多项评测中显著优于现有RAG框架，检索召回率达99.14%，生成F1达66.85%
+```powershell
+conda activate tarag_env
+```
 
-## 📂 项目结构
-TARAG/
-├── data/ # 数据集与知识库文件
-│ ├── TAQA/ # TAQA数据集（双语时间标注QA对）
-│ └── knowledge_base/ # 结构化时间索引知识库
-├── modules/ # 核心模块
-│ ├── time_aware_kb/ # 时间感知知识库构建
-│ ├── hybrid_retrieval/ # 混合时间检索模块
-│ └── time_aware_gen/ # 时间感知生成模块
-├── experiments/ # 实验脚本与评估结果
-├── models/ # 预训练模型与嵌入文件
-├── utils/ # 工具函数
-├── configs/ # 配置文件
-├── requirements.txt # 依赖包列表
-├── inference.py # 推理脚本
-└── README.md # 项目说明
+### 2) 依赖安装
 
+如果你是本仓库当前环境，建议直接使用：
 
-## 📊 TAQA 数据集
+```powershell
+pip install -r requirements.windows.txt
+```
 
-TAQA 是一个中英双语、时间标注的农业问答数据集，包含约3万条高质量QA对，覆盖超过2000种病虫害，并标注了四类时间表达：
+说明：
+- `requirements.txt` 里有部分本机路径依赖（`@ file:///...`），不适合直接复现安装。
+- `requirements.windows.txt` 是可安装版本（已去除 Windows 不兼容项）。
 
-- **物候期**（如“苗期”、“开花期”）
-- **季节性时段**（如“早春”、“晚秋”）
-- **日历时间**（如“八月”、“九月下旬”）
-- **相对时间表达**（如“收获前”、“开花后”）
+### 3) GPU 版 PyTorch（必须）
 
-数据集下载与使用说明详见 [`data/TAQA/README.md`](data/TAQA/README.md)。
+确保是 CUDA 版（不是 `+cpu`）：
 
-## 🚀 快速开始
+```powershell
+pip install --upgrade torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+```
 
-### 1. 环境安装
+检查 GPU：
 
-```bash
-git clone https://github.com/your-username/TARAG.git
-cd TARAG
-pip install -r requirements.txt
-2. 数据准备
-下载并解压TAQA数据集与预训练知识库至 data/ 目录。
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda)"
+```
 
-3. 运行推理示例
-python
-from modules.hybrid_retrieval import HybridTimeRetriever
-from modules.time_aware_gen import TimeAwareGenerator
+期望输出类似：
+- `2.6.0+cu124`
+- `True`
+- `12.4`
 
-# 初始化检索器与生成器
-retriever = HybridTimeRetriever(knowledge_base_path="data/knowledge_base/")
-generator = TimeAwareGenerator(model_name="DeepSeek-R1-14B")
+## 模型目录
 
-# 输入查询
-query = "水稻苗期如何防治稻飞虱？"
-time_context = "苗期"
+本项目默认使用以下子目录（建议显式传参）：
 
-# 检索与生成
-documents = retriever.retrieve(query, time_context)
-answer = generator.generate(query, documents, time_context)
-print(answer)
-4. 训练自定义知识库
-bash
-python train.py --config configs/kb_build.yaml
-📈 实验结果
-检索性能对比（Recall@20）
-模型	Recall@20
-Contriever	22.62%
-E5	97.51%
-Qwen3-Embedding-4B	96.21%
-TARAG (Ours)	99.14%
-生成性能对比（F1@10）
-模型 + 方法	F1@10
-DeepSeek-R1-14B + Naive RAG	51.22%
-DeepSeek-R1-14B + TimeR4	62.28%
-DeepSeek-R1-14B + TARAG	66.85%
-更多详细结果请见论文与 experiments/ 目录。
+- LLM：`models/DeepSeek-R1-Distill-Qwen-1.5B`
+- Embedding：`embedding_models/bge-m3`
 
-🧪 引用
-如果本项目或论文对您的研究有帮助，请引用：
+## 数据格式
 
-bibtex
-@article{liu2025tarag,
-  title={TARAG: A Time-aware Retrieval-augmented Generation Framework for Precise Agricultural Practice Support},
-  author={Liu, Lei and Li, Shunbao and Qi, Jun and Yuan, Zhipeng and Yang, Po},
-  journal={arXiv preprint arXiv:xxxx.xxxxx},
-  year={2025}
+### 知识库清洗输出格式
+
+```json
+[
+  {
+    "disease": "烟草煤污病",
+    "stage": "7、8月份",
+    "treatment": "喷药防治蚜虫"
+  }
+]
+```
+
+### Query 文件格式（批处理）
+
+```json
+[
+  {
+    "golden_answer": "2359_2",
+    "query": "8月份天气热了，桑蓟马是不是更容易暴发，该怎么防治？",
+    "answer": "..."
+  }
+]
+```
+
+其中 `query` 字段必须存在且为非空字符串。
+
+## 命令说明
+
+### 1) 清洗知识库
+
+```powershell
+python main.py build-kb `
+  --input data/sample_raw_docs.json `
+  --output data/clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B
+```
+
+### 2) 单问题推理
+
+```powershell
+python main.py ask `
+  --question "移栽15天后烟草低头黑病怎么防治？" `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --bm25-top-k 100 `
+  --rerank-top-k 10 `
+  --generation-top-k 5
+```
+
+### 3) 批量推理（`ask-batch`）
+
+新增命令：`ask-batch`，用于 query 文件批处理。
+
+核心参数：
+- `--query-file`：query JSON 路径（必填）
+- `--kb`：知识库 JSON 路径（必填）
+- `--output`：输出 JSON 文件（必填，单个 JSON 数组）
+- `--start-index`：起始索引，默认 `0`
+- `--limit`：处理条数，不传则处理到末尾
+- `--progress-every`：每 N 条打印一次进度，默认 `10`
+
+## 跑通流程（推荐）
+
+### Step A：先跑 1 条
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query5.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --start-index 0 `
+  --limit 1 `
+  --output output/batch_query5_1.json `
+  --progress-every 1
+```
+
+### Step B：再跑 10 条
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query5.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --start-index 0 `
+  --limit 10 `
+  --output output/batch_query5_10.json `
+  --progress-every 2
+```
+
+### Step C：全量跑
+
+把 `--query-file` 改为你的完整文件（例如 `data/query.json`），去掉 `--limit`：
+
+```powershell
+python main.py ask-batch `
+  --query-file data/query.json `
+  --kb data/sample_clean_docs.json `
+  --model-dir models/DeepSeek-R1-Distill-Qwen-1.5B `
+  --embedding-model-dir embedding_models/bge-m3 `
+  --output output/batch_query_full.json
+```
+
+## `ask-batch` 输出结构
+
+每条记录结构如下：
+
+```json
+{
+  "index": 0,
+  "query": "...",
+  "golden_answer": "...",
+  "reference_answer": "...",
+  "result": {
+    "question": "...",
+    "parsed_query": {},
+    "retrieved": [],
+    "answer": "...",
+    "verification": {}
+  },
+  "status": "ok",
+  "error": "",
+  "elapsed_seconds": 51.863
 }
-📄 许可证
-本项目采用 MIT 许可证。详见 LICENSE 文件。
+```
 
-🙌 致谢
-感谢所有为本项目提供数据、模型与实验支持的机构与个人。特别感谢TAQA数据集的标注团队。
+说明：
+- `status=error` 时不会中断全批次，错误会记录在 `error` 字段。
+
+## 常见问题
+
+### 1) 报错：`torch.load` 安全限制（CVE）
+
+原因：`torch` 太低。  
+解决：升级到 `torch>=2.6`，并使用 CUDA 版 wheel。
+
+### 2) 明明有 GPU 但仍走 CPU
+
+检查：
+- `torch.__version__` 是否是 `+cu124`（或其他 CUDA 后缀）
+- `torch.cuda.is_available()` 是否为 `True`
+
+### 3) `query.json` 不存在
+
+先用 `data/query5.json` 跑通，再替换为你自己的全量路径。
