@@ -1,2 +1,5 @@
 models/
 embedding_models/
+.venv/
+__pycache__/
+*.pyc
