@@ -9,6 +9,12 @@
 5. 答案校验（生成答案 vs 检索证据）
 6. 批量推理（`query` 文件单条/小批/全量）
 
+## 论文架构图
+
+下图为传统 RAG 与 TARAG 的对比架构图：
+
+![TARAG 论文架构图](docs/assets/compare_framework.png)
+
 ## 目录结构
 
 ```text

@@ -9,6 +9,12 @@ This repository implements the full pipeline and has been validated on GPU:
 5. Answer verification (generated answer vs retrieved evidence)
 6. Batch inference for query files (`ask-batch`)
 
+## Framework Diagram
+
+The following figure compares Traditional RAG and TARAG:
+
+![TARAG framework comparison](docs/assets/compare_framework.png)
+
 ## Project Layout
 
 ```text
